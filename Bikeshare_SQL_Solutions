@@ -1,0 +1,273 @@
+--How many unique stations are there in the Station table?
+
+SELECT DISTINCT COUNT(station_name) AS No_0f_Stations
+FROM Station;
+
+
+--What is the average capacity of all stations?
+SELECT AVG(capacity) AS Average_Capacity
+FROM Station;
+
+--How many trips were taken on Valentine's date?
+SELECT COUNT(trip_id) AS No_of_Trips
+FROM Trip T
+LEFT JOIN Station S on T.start_station_id = S.station_name
+WHERE trip_start_date = '2023-02-14';
+
+--Can you list the top 5 stations with the highest capacity?
+SELECT TOP 5 station_name, capacity as no_of_slots
+FROM Station
+ORDER BY capacity DESC;
+--What is the total precipitation recorded on each date?
+SELECT date, SUM(total_precipitation_mm) AS total_precipitation
+FROM Weather
+GROUP BY date;
+
+--How many trips were taken by each user type?
+SELECT user_type, COUNT (trip_id) as Total_Trips
+FROM Trip
+GROUP BY user_type;
+--Can you calculate the average trip duration in seconds for each user type?
+SELECT user_type, AVG(trip_duration_seconds) AS Average_Trip_Duration
+FROM Trip
+GROUP BY user_type;
+--Can you find the stations where the most trips start and end?
+SELECT TOP 1 station_name, COUNT(start_station_id) AS No_of_Start_Trips
+FROM Trip T
+INNER JOIN Station S ON S.station_id = T.start_station_id
+GROUP BY S.station_name
+ORDER BY COUNT(start_station_id) DESC;
+
+SELECT TOP 10 station_name, COUNT(start_station_id) AS No_of_Start_Trips
+FROM Trip T
+INNER JOIN Station S ON S.station_id = T.start_station_id
+GROUP BY S.station_name
+ORDER BY COUNT(start_station_id) DESC;
+
+SELECT TOP 10 station_name, COUNT(end_station_id) AS No_of_End_Trips
+FROM Trip T
+INNER JOIN Station S ON S.station_id = T.end_station_id
+GROUP BY S.station_name
+ORDER BY COUNT(end_station_id) DESC;
+
+SELECT TOP 1 station_name, COUNT(end_station_id) AS No_of_End_Trips
+FROM Trip T
+INNER JOIN Station S ON S.station_id = T.end_station_id
+GROUP BY S.station_name
+ORDER BY COUNT(end_station_id) DESC;
+--What is the maximum and minimum mean temperature recorded in the Weather table?
+SELECT MAX(mean_temp_celsius) AS Highest_Temperature
+FROM Weather;
+
+SELECT MIN(mean_temp_celsius) AS Lowest_Temperature
+FROM Weather;
+
+--How many stations have a capacity greater than the average capacity?
+SELECT COUNT(station_name) AS Count
+FROM Station
+WHERE capacity > (
+    SELECT AVG(capacity) AS Average_Capacity
+    FROM Station
+);
+
+SELECT COUNT(station_name) AS Count
+FROM Station
+WHERE capacity > (
+    SELECT TOP 1 AVG(capacity) AS Average_Capacity
+    FROM Station
+);
+
+--Can you identify any correlations between weather conditions (e.g., temperature, precipitation) and the number of trips taken?
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE mean_temp_celsius BETWEEN -20 AND -10;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE mean_temp_celsius BETWEEN -10 AND 0;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE mean_temp_celsius BETWEEN 0 AND 10;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE mean_temp_celsius BETWEEN 10 AND 20;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE mean_temp_celsius BETWEEN 20 AND 30;
+
+SELECT MAX(total_precipitation_mm) AS Max_Precipitation
+FROM Weather;
+
+SELECT MIN(total_precipitation_mm) AS Min_Precipitation
+FROM Weather;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE total_precipitation_mm = 0;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE total_precipitation_mm BETWEEN 1 AND 10;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE total_precipitation_mm BETWEEN 10 AND 20;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+LEFT JOIN Weather W ON T.trip_start_date = W.date
+WHERE total_precipitation_mm BETWEEN 20 AND 30;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+INNER JOIN Weather W ON T.trip_start_date = W.date
+WHERE total_precipitation_mm BETWEEN 30 AND 40;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+INNER JOIN Weather W ON T.trip_start_date = W.date
+WHERE total_precipitation_mm BETWEEN 40 AND 50;
+
+SELECT COUNT(T.trip_id) AS Number_Of_Trips
+FROM Trip T
+INNER JOIN Weather W ON T.trip_start_date = W.date
+WHERE total_precipitation_mm > 50;
+
+--Can you calculate the total distance traveled for each trip based on the start and end coordinates of the stations?
+-- Calculate the distance between two geographical points using the Haversine formula
+
+
+GO
+
+-- Drop the existing function if it exists
+IF OBJECT_ID('dbo.CalculateDistance', 'FN') IS NOT NULL
+    DROP FUNCTION dbo.CalculateDistance;
+GO
+
+CREATE FUNCTION dbo.CalculateDistance (
+    @lat1 FLOAT,
+    @lon1 FLOAT,
+    @lat2 FLOAT,
+    @lon2 FLOAT
+)
+RETURNS FLOAT
+AS
+BEGIN
+    DECLARE @radius FLOAT = 6371; -- Earth's radius in kilometers
+    
+    DECLARE @dLat FLOAT = RADIANS(@lat2 - @lat1);
+    DECLARE @dLon FLOAT = RADIANS(@lon2 - @lon1);
+    
+    DECLARE @a FLOAT = SIN(@dLat / 2) * SIN(@dLat / 2) +
+                      COS(RADIANS(@lat1)) * COS(RADIANS(@lat2)) *
+                      SIN(@dLon / 2) * SIN(@dLon / 2);
+    
+    DECLARE @c FLOAT = 2 * ATN2(SQRT(@a), SQRT(1 - @a));
+    
+    DECLARE @distance FLOAT = @radius * @c;
+    
+    RETURN @distance; -- Distance in kilometers
+END;
+
+GO
+
+
+
+
+SELECT T.trip_id, 
+       T.start_station_id, 
+       T.end_station_id, 
+       dbo.CalculateDistance(S1.latitude, S1.longitude, S2.latitude, S2.longitude) AS total_distance_km
+FROM Trip T
+INNER JOIN Station S1 ON T.start_station_id = S1.station_id
+INNER JOIN Station S2 ON T.end_station_id = S2.station_id
+ORDER BY total_distance_km DESC;
+
+
+--Can you design a query to retrieve the top 10 busiest stations by the number of trips?
+
+SELECT TOP 10 S.station_name, COUNT(T.trip_id) AS num_trips
+FROM Station S
+INNER JOIN Trip T ON T.start_station_id = S.station_id
+GROUP BY S.station_name
+ORDER BY COUNT(T.trip_id) DESC;
+
+
+--Calculate the average trip duration for each user type (subscriber vs. customer) on weekdays and weekends separately.
+SELECT AVG(trip_duration_seconds), user_type
+FROM Trip
+WHERE DATEPART(weekday, trip_start_date) BETWEEN 2 AND 6
+GROUP BY user_type;
+
+SELECT AVG(trip_duration_seconds), user_type
+FROM Trip
+WHERE DATEPART(weekday, trip_start_date) IN (1, 7)
+GROUP BY user_type;
+
+
+
+--Identify the top 5 busiest stations by the number of trips during peak hours (e.g., 8:00 AM - 10:00 AM and 5:00 PM - 7:00 PM) on weekdays.
+
+SELECT TOP 5 COUNT(T.start_station_id) AS No_Of_Trips, S.station_name
+FROM Trip T
+LEFT JOIN Station S ON T.start_station_id = S.station_id
+WHERE DATEPART(HOUR, T.trip_start_time) BETWEEN 8 AND 10
+GROUP BY S.station_name
+ORDER BY COUNT(T.start_station_id) DESC;
+
+SELECT TOP 5 COUNT(T.start_station_id) AS No_Of_Trips, S.station_name
+FROM Trip T
+LEFT JOIN Station S ON T.start_station_id = S.station_id
+WHERE DATEPART(HOUR, T.trip_start_time) BETWEEN 17 AND 19
+GROUP BY S.station_name
+ORDER BY COUNT(T.start_station_id) DESC;
+
+
+--Calculate the percentage of trips that start and end at the same station (round trips) for each user type.
+
+SELECT user_type, SUM(CASE WHEN start_station_id = end_station_id THEN 1 ELSE 0 END) AS round_trips,
+    COUNT(*) AS total_trips,
+    (SUM(CASE WHEN start_station_id = end_station_id THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS round_trip_percentage
+FROM Trip
+GROUP BY user_type;
+
+
+
+
+--Identify the most common routes (start station to end station) taken by subscribers and customers separately.
+
+SELECT TOP 5 user_type, start_station_id, end_station_id, COUNT(*) AS route_count
+FROM Trip
+WHERE user_type = 'Casual Member'
+GROUP BY user_type, start_station_id, end_station_id
+ORDER BY user_type, route_count DESC;
+
+
+SELECT TOP 5 user_type, start_station_id, end_station_id, COUNT(*) AS route_count
+FROM Trip
+WHERE user_type = 'Annual Member'
+GROUP BY user_type, start_station_id, end_station_id
+ORDER BY user_type, route_count DESC;
+
+
+
+
+
+
+
+
+
+
+
+
